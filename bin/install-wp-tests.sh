@@ -50,9 +50,14 @@ install_wp() {
 
   if [ $WP_VERSION == 'latest' ]; then
     local ARCHIVE_NAME='latest'
+    # fetch the latest wordpress version code
+    VERSION_CODE=$(curl -s "https://api.wordpress.org/core/version-check/1.7/" | jq -r '[.offers[]|select(.response=="upgrade")][0].version')
   else
     local ARCHIVE_NAME="wordpress-$WP_VERSION"
+    VERSION_CODE="${WP_VERSION}"
   fi
+
+  VERSION_CODE=${VERSION_CODE:0:3}
 
   download https://wordpress.org/${ARCHIVE_NAME}.tar.gz  /tmp/wordpress.tar.gz
   tar --strip-components=1 -zxmf /tmp/wordpress.tar.gz -C $WP_CORE_DIR
@@ -72,7 +77,10 @@ install_test_suite() {
   if [ ! "$(ls -A $WP_TESTS_DIR)" ]; then
     # set up testing suite
     mkdir -p $WP_TESTS_DIR
-    svn co --quiet http://develop.svn.wordpress.org/trunk/tests/phpunit/includes/ $WP_TESTS_DIR
+    cd $WP_TESTS_DIR
+    git clone --single-branch --branch $VERSION_CODE https://github.com/WordPress/wordpress-develop.git
+    cd wordpress-develop
+    mv tests/phpunit/includes/* $WP_TESTS_DIR
   fi
 
   cd $WP_TESTS_DIR
